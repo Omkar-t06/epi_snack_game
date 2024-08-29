@@ -13,20 +13,51 @@
             align-items: center;
             flex-direction: column;
             height: 100vh;
-            background-color: #222;
+            background: linear-gradient(135deg, #D7DEDC, #CFCFCD);
             color: #fff;
-            font-family: Arial, sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
         }
 
         #game-container {
-            display: none;
+            position: relative;
+            display: flex;
             flex-direction: column;
             align-items: center;
         }
 
+        #watermark-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.1;
+            z-index: 0;
+            width: 200px;
+            height: auto;
+        }
+
+        #watermark-text {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            opacity: 0.2;
+            z-index: 2;
+            font-size: 24px;
+            color: #563440;
+        }
+
         canvas {
-            border: 2px solid #444;
-            background-color: #333;
+            border-radius: 15px;
+            background: #CFCFCD;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        #score {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #563440;
         }
 
         #controls {
@@ -42,41 +73,44 @@
         }
 
         button {
-            background-color: #444;
-            border: 2px solid #888;
+            background: #9A879D;
+            border: none;
             color: #fff;
             padding: 15px;
             margin: 5px;
-            font-size: 18px;
+            font-size: 24px;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s, box-shadow 0.3s;
         }
 
         button:active {
-            background-color: #666;
+            background: #563440;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
         }
 
-        #scoreboard {
+        #upButton, #downButton, #leftButton, #rightButton {
+            width: 80px;
+            height: 80px;
+            font-size: 32px;
+        }
+
+        #quote {
             margin-top: 20px;
-            display: none;
-        }
-
-        #scoreboard h2 {
-            margin-bottom: 10px;
+            font-size: 18px;
+            color: #7A3B69;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="intro">
-        <h1>Welcome to the Snake Game!</h1>
-        <label for="playerName">Enter your name:</label>
-        <input type="text" id="playerName" placeholder="Your Name">
-        <button id="startButton">Start Game</button>
-    </div>
-
     <div id="game-container">
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <canvas id="gameCanvas" width="360" height="360"></canvas>
+        <img id="watermark-logo" src="/mnt/data/White logo HQ.png" alt="Watermark">
+        <div id="watermark-text">EpsilonPi</div>
         <p id="score">Score: 0</p>
+        <p id="quote"></p>
     </div>
 
     <div id="controls">
@@ -90,26 +124,13 @@
         </div>
     </div>
 
-    <div id="scoreboard">
-        <h2>Scoreboard</h2>
-        <ul id="scoreList"></ul>
-        <button id="restartButton">Restart Game</button>
-    </div>
-
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const canvas = document.getElementById("gameCanvas");
             const ctx = canvas.getContext("2d");
             const scoreDisplay = document.getElementById("score");
-            const intro = document.getElementById("intro");
-            const gameContainer = document.getElementById("game-container");
-            const scoreboard = document.getElementById("scoreboard");
-            const scoreList = document.getElementById("scoreList");
-            const playerNameInput = document.getElementById("playerName");
-            const startButton = document.getElementById("startButton");
-            const restartButton = document.getElementById("restartButton");
+            const quoteDisplay = document.getElementById("quote");
 
-            let playerName = '';
             const GRID_SIZE = 20;
             const GRID_WIDTH = canvas.width / GRID_SIZE;
             const GRID_HEIGHT = canvas.height / GRID_SIZE;
@@ -131,35 +152,39 @@
             let gameLoop;
             let intervalTime = 100;
 
-            startButton.addEventListener("click", () => {
-                playerName = playerNameInput.value.trim();
-                if (playerName) {
-                    intro.style.display = 'none';
-                    gameContainer.style.display = 'flex';
-                    resetGame();
-                } else {
-                    alert("Please enter your name to start the game.");
-                }
-            });
-
-            restartButton.addEventListener("click", () => {
-                scoreboard.style.display = 'none';
-                gameContainer.style.display = 'flex';
-                resetGame();
-            });
+            const motivationalQuotes = [
+                "Don't watch the clock; do what it does. Keep going.",
+                "You are capable of amazing things.",
+                "Every accomplishment starts with the decision to try.",
+                "Success is not final, failure is not fatal: It is the courage to continue that counts.",
+                "Believe you can and you're halfway there.",
+                "Failure is not the opposite of success; it's part of success.",
+                "The only limit to our realization of tomorrow is our doubts of today.",
+                "You are stronger than you think.",
+                "Success is how high you bounce when you hit bottom.",
+                "The best way to get started is to quit talking and begin doing."
+            ];
 
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 // Draw snake
-                ctx.fillStyle = "#888";
-                snake.body.forEach((segment) => {
+                snake.body.forEach((segment, index) => {
+                    const shade = 200 - (index * 10);
+                    ctx.fillStyle = "#9A879D";
                     ctx.fillRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+                    ctx.strokeStyle = "#563440";
+                    ctx.strokeRect(segment.x * GRID_SIZE, segment.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
                 });
 
                 // Draw food
-                ctx.fillStyle = "#0f0";
+                ctx.fillStyle = "#7A3B69";
+                ctx.shadowColor = "rgba(122, 59, 105, 0.5)";
+                ctx.shadowBlur = 10;
                 ctx.fillRect(food.x * GRID_SIZE, food.y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+
+                // Reset shadow
+                ctx.shadowBlur = 0;
 
                 // Draw score
                 scoreDisplay.textContent = `Score: ${score}`;
@@ -199,8 +224,10 @@
 
             function gameOver() {
                 clearInterval(gameLoop);
-                alert(`Game Over! Your score: ${score}`);
-                displayScoreboard();
+                const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+                alert(`Game Over! Your score: ${score}\n\n${randomQuote}`);
+                quoteDisplay.textContent = randomQuote;
+                resetGame();
             }
 
             function resetGame() {
@@ -214,14 +241,6 @@
                     update();
                     draw();
                 }, intervalTime);
-            }
-
-            function displayScoreboard() {
-                gameContainer.style.display = 'none';
-                scoreboard.style.display = 'block';
-                const scoreItem = document.createElement("li");
-                scoreItem.textContent = `${playerName}: ${score}`;
-                scoreList.appendChild(scoreItem);
             }
 
             function handleKeyDown(event) {
